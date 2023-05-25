@@ -12,27 +12,23 @@ namespace BaseAI
         /// <summary>
         /// Максимальная скорость движения агента
         /// </summary>
-        public float maxSpeed;
+        public float maxSpeed = 5;
         /// <summary>
-        /// Шаг поворота агента в градусах
+        /// Максимальный угол поворота агента
         /// </summary>
         public float rotationAngle;
         /// <summary>
-        /// Количество дискретных углов поворота в одну сторону. 0 - только движение вперёд, 1 - влево/прямо/вправо, и т.д.
+        /// Количество дискретных углов поворота
         /// </summary>
         public int angleSteps;
-        /// <summary>
-        /// Длина прыжка (фиксированная)
-        /// </summary>
-        public float jumpLength;
-        /// <summary>
-        /// Время прыжка - предварительно рассчитать!
-        /// </summary>
-        public float jumpTime;
         /// <summary>
         /// Сила прыжка
         /// </summary>
         public float jumpForce;
+        /// <summary>
+        /// Длина прыжка - надо подобрать эмпирически, используется для построения пути
+        /// </summary>
+        public float jumpLength;
         /// <summary>
         /// эпсилон-окрестность точки, в пределах которой точка считается достигнутой
         /// </summary>
@@ -40,10 +36,10 @@ namespace BaseAI
         /// <summary>
         /// Дельта времени (шаг по времени), с которой строится маршрут
         /// </summary>
-        public float deltaTime = 1f;
+        public float deltaTime = 0.5f;
         /// <summary>
-        /// Шаг по пространству, с которым происходит дискретизация области (для отсечения посещённых точек)
+        /// Дельта пространства (сетки), с которой строится маршрут
         /// </summary>
-        public float deltaDist = 1f;
+        public float deltaDist = 0.5f;
     }
 }
