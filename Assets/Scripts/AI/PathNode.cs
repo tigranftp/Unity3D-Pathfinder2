@@ -7,27 +7,35 @@ namespace BaseAI
     /// <summary>
     /// Точка пути - изменяем по сравенению с предыдущим проектом
     /// </summary>
-    public class PathNode//: MonoBehaviour
+    public class PathNode
     {
-        public Vector3 Position { get; set; }         //  Позиция в глобальных координатах
-        public Vector3 Direction { get; set; }        //  Направление
-        public float TimeMoment { get; set; }         //  Момент времени       
         /// <summary>
-        /// Нужно ли из этой вершины прыгать
+        /// Позиция в глобальных координатах
         /// </summary>
-        public bool JumpNode { get; set; } = false; 
+        public Vector3 Position { get; set; }
+        /// <summary>
+        /// Направление
+        /// </summary>
+        public Vector3 Direction { get; set; }
+        /// <summary>
+        /// Момент времени
+        /// </summary>
+        public float TimeMoment { get; set; }
+        /// <summary>
+        /// Явно заданный регион
+        /// </summary>
+        public int? RegionIndex { get; set; }
+        /// <summary>
+        /// Длина части маршртута, зашедшего в другой регион
+        /// </summary>
+        public byte OtherRegionLength { get; set; } = 0;
+
         /// <summary>
         /// Родительская вершина - предшествующая текущей в пути от начальной к целевой
         /// </summary>
-        public PathNode Parent = null;       //  Родительский узел
+        public PathNode Parent { get; set; } = null;
 
-        public float H { get; set; }  //  Оставшийся путь до цели
-
-        /// <summary>
-        /// Предположительный индекс региона, в котором находится точка. Проблема в том, что регионы могут накладываться
-        /// друг на друга, и этот индекс может не соответствовать тому, который нам нужен
-        /// </summary>
-        public int RegionIndex = -1;  
+        public float F { get; set; }  //  Пройденный путь от цели
 
         /// <summary>
         /// Конструирование вершины на основе родительской (если она указана)
@@ -48,8 +56,7 @@ namespace BaseAI
             Direction = currentDirection;    //  Направление отсутствует
             TimeMoment = Time.fixedTime;     //  Время текущее
             Parent = null;                   //  Родителя нет
-            RegionIndex = -1;
-            H = 0;
+            F = 0;
         }
 
         /// <summary>
@@ -74,14 +81,6 @@ namespace BaseAI
             return Vector3.Distance(Position, other);
         }
 
-        /// <summary>
-        /// Порождаем дочернюю точку с указанными шагом, углом поворота и дельтой по времени
-        /// G и Н не пересчитываются !!!!
-        /// </summary>
-        /// <param name="stepLength">Длина шага</param>
-        /// <param name="rotationAngle">Угол поворота вокруг оси OY в градусах</param>
-        /// <param name="timeDelta">Впремя, потраченное на шаг</param>
-        /// <returns></returns>
         public PathNode SpawnChildren(float stepLength, float rotationAngle, float timeDelta)
         {
             PathNode result = new PathNode(this);
@@ -95,28 +94,48 @@ namespace BaseAI
 
             //  Момент времени считаем
             result.TimeMoment = TimeMoment + timeDelta;
-            
-            result.RegionIndex = RegionIndex;
 
-            //  Добавка для эвристики - нужна ли?
-            //if (Mathf.Abs(rotationAngle) > 0.001f) result.TimeMoment += 0.3f;
+            result.OtherRegionLength = OtherRegionLength;
 
             return result;
         }
+
         /// <summary>
-        /// Дискретизация положения точки к неторому узлу пространственной сетки.
-        /// Используется для того, чтобы контролировать какие точки мы уже посещали, в коллекциях типа HashSet
-        /// Поворот не учитывается, что вообще-то не очень хорошо
+        /// Преобразует точку в сеточное представление
         /// </summary>
-        /// <param name="distDelta">Шаг дискретизации по пространству</param>
-        /// <param name="timeDelta">Шаг дискретизации по времени</param>
-        /// <returns>Четыре координаты (пространство-время)</returns>
-        public (int, int, int, int) ToGrid4DPoint(float distDelta, float timeDelta)
+        public (int, int, int, int) ToGrid(float distDelta)
         {
-            return (Mathf.RoundToInt(Position.x / distDelta),
-                Mathf.RoundToInt(Position.y / distDelta),
-                Mathf.RoundToInt(Position.z / distDelta),
-                Mathf.RoundToInt(TimeMoment / timeDelta));
+            int posX = Mathf.RoundToInt(Position.x / distDelta);
+            int posZ = Mathf.RoundToInt(Position.z / distDelta);
+            int dirX = Mathf.RoundToInt(Direction.x / distDelta);
+            int dirZ = Mathf.RoundToInt(Direction.z / distDelta);
+            return (posX, posZ, dirX, dirZ);
+        }
+
+        /// <summary>
+        /// Проверяет, находится ли точка на высоте
+        /// </summary>
+        public bool IsAboveTheGround()
+        {
+            return Physics.Raycast(Position, new Vector3(0, -1, 0), out RaycastHit _, 5);
+        }
+
+        /// <summary>
+        /// Проверка того, что точка проходима
+        /// </summary>
+        /// <returns></returns>
+        public bool IsWalkable()
+        {
+            if (!IsAboveTheGround()) return false;
+
+            var collisions = Physics.OverlapSphere(Position, 1.0f);
+            foreach (var col in collisions)
+            {
+                if (col.CompareTag("Box"))
+                    return false;
+            }
+
+            return true;
         }
     }
 }
